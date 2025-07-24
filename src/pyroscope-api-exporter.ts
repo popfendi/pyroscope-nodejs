@@ -7,6 +7,9 @@ import { dateToUnixTimestamp } from './utils/date-to-unix-timestamp.js';
 import { processProfile } from './utils/process-profile.js';
 import debug from 'debug';
 import { PyroscopeConfig } from './pyroscope-config.js';
+import {Blob as BlobPolyfill} from 'node:buffer';
+
+global.Blob = BlobPolyfill as any;
 
 const log = debug('pyroscope');
 
