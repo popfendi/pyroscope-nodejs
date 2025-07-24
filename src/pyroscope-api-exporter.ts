@@ -103,6 +103,7 @@ export class PyroscopeApiExporter implements ProfileExporter {
     const headers = this.buildRequestHeaders();
     headers.set('Content-Type', `multipart/form-data; boundary=${boundary}`);
 
+    log('Request body:', body);
     try {
       const response = await fetch(
         this.buildEndpointUrl(profileExport).toString(),

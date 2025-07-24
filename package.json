@@ -1,6 +1,6 @@
 {
   "name": "@popfendicollars/pyroscope-nodejs",
-  "version": "0.4.7",
+  "version": "0.4.8",
   "description": "pyroscope nodejs package",
   "exports": {
     ".": {
@@ -12,7 +12,7 @@
   "scripts": {
     "prepublishOnly": "pinst --disable",
     "postpublish": "pinst --enable",
-    "build": "yarn build:cjs && yarn build:esm",
+    "build": "npm run build:cjs && npm run build:esm",
     "build:cjs": "node tools/cleanup cjs && tsc -p config/tsconfig.cjs.json",
     "build:esm": "node tools/cleanup esm && tsc -p config/tsconfig.esm.json && echo '{\"type\":\"module\"}' >./dist/esm/package.json",
     "clean": "node tools/cleanup",
