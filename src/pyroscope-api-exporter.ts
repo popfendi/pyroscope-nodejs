@@ -6,10 +6,7 @@ import { ProfileExport, ProfileExporter } from './profile-exporter.js';
 import { dateToUnixTimestamp } from './utils/date-to-unix-timestamp.js';
 import { processProfile } from './utils/process-profile.js';
 import debug from 'debug';
-import { PyroscopeConfig } from './pyroscope-config.js';
-import {Blob as BlobPolyfill} from 'node:buffer';
-
-global.Blob = BlobPolyfill as any;
+import { PyroscopeConfig } from './pyroscope-config.js'; 
 
 const log = debug('pyroscope');
 
@@ -82,41 +79,36 @@ export class PyroscopeApiExporter implements ProfileExporter {
 
   private async buildUploadProfileFormData(
     profile: Profile
-  ): Promise<FormData> {
+  ): Promise<Buffer> {
     const processedProfile: Profile = processProfile(profile);
 
     const profileBuffer: Buffer = await encode(processedProfile);
 
-    const formData: FormData = new FormData();
-
-    /*
-     * Use the raw Buffer rather than wrapping it in a Blob. In environments
-     * where `fetch` is poly-filled by libraries such as `node-fetch`, the Blob
-     * implementation is not always recognised which can result in the whole
-     * FormData object being coerced to the string "[object FormData]". By
-     * passing the Buffer directly we ensure both the built-in `undici` fetch
-     * (Node >= 18) and the `node-fetch` polyfill serialise the multipart body
-     * correctly.
-     */
-    // TS DOM lib does not include Buffer in the overload list, but both
-    // `undici` (built-in fetch in Node >= 18) and `node-fetch` understand a
-    // `Buffer` value here, so we cast to `any` to satisfy the compiler.
-    formData.append('profile', profileBuffer as any, 'profile');
-
-    return formData;
+    return profileBuffer;
   }
 
   private async uploadProfile(profileExport: ProfileExport): Promise<void> {
-    const formData: FormData = await this.buildUploadProfileFormData(
+    const profile: Buffer = await this.buildUploadProfileFormData(
       profileExport.profile
     );
+
+    const boundary = 'pyroscope-boundary';
+    const body = Buffer.concat([
+      Buffer.from(
+        `--${boundary}\r\nContent-Disposition: form-data; name="profile"; filename="profile"\r\nContent-Type: application/octet-stream\r\n\r\n`
+      ),
+      profile,
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const headers = this.buildRequestHeaders();
+    headers.set('Content-Type', `multipart/form-data; boundary=${boundary}`);
 
     try {
       const response = await fetch(
         this.buildEndpointUrl(profileExport).toString(),
         {
-          body: formData,
-          headers: this.buildRequestHeaders(),
+          body,
+          headers: headers,
           method: 'POST',
         }
       );
